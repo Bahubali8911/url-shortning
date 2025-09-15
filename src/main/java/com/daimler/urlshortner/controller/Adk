@@ -1,0 +1,288 @@
+from google.cloud import ai_adk
+from google.cloud.ai_adk import tools, agents
+import pandas as pd
+from pathlib import Path
+import os
+import zipfile
+from google import genai
+from google.genai import types
+import json
+
+# Define document type mapping based on risk classification
+DOCUMENT_MAPPING = {
+    "low": ["id_proof", "address_proof", "income_proof"],
+    "medium": ["id_proof", "address_proof", "income_proof", "bank_statement", "tax_return"],
+    "high": ["id_proof", "address_proof", "income_proof", "bank_statement", "tax_return", 
+             "employment_verification", "credit_report", "asset_proof"]
+}
+
+# Initialize Gemini client
+GEMINI_CLIENT = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
+
+@tools.tool
+def read_excel_file(file_path: str) -> pd.DataFrame:
+    """Reads an Excel file and returns a DataFrame with customer data."""
+    try:
+        df = pd.read_excel(file_path)
+        return df
+    except Exception as e:
+        raise ValueError(f"Error reading Excel file: {e}")
+
+@tools.tool
+def get_expected_documents(risk_class: str) -> list:
+    """Get the list of expected document types for a risk class."""
+    return DOCUMENT_MAPPING.get(risk_class.lower(), [])
+
+@tools.tool
+def get_customer_files(customer_id: str, base_dir: str) -> list:
+    """Retrieve all PDF files for a customer from the base directory."""
+    customer_dir = Path(base_dir) / customer_id
+    if customer_dir.exists() and customer_dir.is_dir():
+        return [str(f) for f in customer_dir.glob("*.pdf")]
+    else:
+        return []
+
+@tools.tool
+def classify_document_with_gemini(file_path: str) -> dict:
+    """Classify the PDF document using Gemini API and return result with confidence."""
+    try:
+        with open(file_path, "rb") as f:
+            file_data = f.read()
+        
+        response = GEMINI_CLIENT.models.generate_content(
+            model="gemini-2.0-flash",
+            contents=[
+                types.Part.from_bytes(data=file_data, mime_type="application/pdf"),
+                "Identify the type of this document and provide a confidence score (0-1). " +
+                "Options: [id_proof, address_proof, income_proof, bank_statement, tax_return, " +
+                "employment_verification, credit_report, asset_proof]. " +
+                "Respond with a JSON object: {document_type: 'type', confidence: 0.95}"
+            ]
+        )
+        
+        # Parse JSON response
+        result = json.loads(response.text.strip())
+        return result
+    except Exception as e:
+        return {"document_type": "unknown", "confidence": 0.0, "error": str(e)}
+
+@tools.tool
+def rename_file(file_path: str, document_type: str, customer_id: str) -> str:
+    """Rename the file to {customer_id}_{document_type}.pdf and return the new path."""
+    path_obj = Path(file_path)
+    new_name = f"{customer_id}_{document_type}.pdf"
+    new_path = path_obj.parent / new_name
+    os.rename(file_path, new_path)
+    return str(new_path)
+
+@tools.tool
+def create_zip_file(file_paths: list, customer_id: str, output_dir: str) -> str:
+    """Create a zip file containing all the files for the customer."""
+    output_path = Path(output_dir)
+    output_path.mkdir(parents=True, exist_ok=True)
+    
+    zip_path = output_path / f"{customer_id}_documents.zip"
+    with zipfile.ZipFile(zip_path, 'w') as zipf:
+        for file_path in file_paths:
+            if Path(file_path).exists():
+                zipf.write(file_path, os.path.basename(file_path))
+    return str(zip_path)
+
+@agents.agent
+def ExcelReaderAgent(state: dict) -> dict:
+    """Agent to read and process the Excel file with customer data."""
+    excel_path = state.get("excel_file_path")
+    if not excel_path:
+        return {"error": "Excel file path not provided in state"}
+    
+    df = read_excel_file(excel_path)
+    state["customer_data"] = df.to_dict('records')
+    state["total_customers"] = len(df)
+    state["processed_customers"] = []
+    return state
+
+@agents.agent
+def CustomerProcessingAgent(state: dict) -> dict:
+    """Agent to process each customer from the Excel data."""
+    customers = state.get("customer_data", [])
+    processed = state.get("processed_customers", [])
+    
+    # Find next customer to process
+    for customer in customers:
+        if customer["customer_id"] not in processed:
+            state["current_customer"] = customer
+            state["current_customer_id"] = customer["customer_id"]
+            state["current_risk_class"] = customer["risk_classification"]
+            return state
+    
+    # No more customers to process
+    state["processing_complete"] = True
+    return state
+
+@agents.agent
+def DocumentExpectationAgent(state: dict) -> dict:
+    """Agent to determine expected documents based on risk classification."""
+    risk_class = state.get("current_risk_class")
+    if not risk_class:
+        return state
+    
+    expected_docs = get_expected_documents(risk_class)
+    state["expected_documents"] = expected_docs
+    return state
+
+@agents.agent
+def FileRetrievalAgent(state: dict) -> dict:
+    """Agent to retrieve all documents for the current customer."""
+    customer_id = state.get("current_customer_id")
+    base_dir = state.get("documents_base_dir", "./documents")
+    
+    if not customer_id:
+        return state
+    
+    files = get_customer_files(customer_id, base_dir)
+    state["customer_files"] = files
+    return state
+
+@agents.agent
+def DocumentClassificationAgent(state: dict) -> dict:
+    """Agent to classify all documents using Gemini."""
+    files = state.get("customer_files", [])
+    classification_results = {}
+    
+    for file_path in files:
+        result = classify_document_with_gemini(file_path)
+        classification_results[file_path] = result
+    
+    state["classification_results"] = classification_results
+    return state
+
+@agents.agent
+def FileRenamingAgent(state: dict) -> dict:
+    """Agent to rename files based on classification results."""
+    customer_id = state.get("current_customer_id")
+    classification_results = state.get("classification_results", {})
+    renamed_files = {}
+    
+    for file_path, classification in classification_results.items():
+        doc_type = classification.get("document_type", "unknown")
+        confidence = classification.get("confidence", 0)
+        
+        # Only rename if confidence is above threshold
+        if confidence > 0.7:
+            new_path = rename_file(file_path, doc_type, customer_id)
+            renamed_files[doc_type] = {
+                "path": new_path,
+                "confidence": confidence,
+                "original_path": file_path
+            }
+        else:
+            # Low confidence - keep original name but record result
+            renamed_files[doc_type] = {
+                "path": file_path,
+                "confidence": confidence,
+                "original_path": file_path,
+                "low_confidence": True
+            }
+    
+    state["renamed_files"] = renamed_files
+    return state
+
+@agents.agent
+def PackagingAgent(state: dict) -> dict:
+    """Agent to create zip file with all processed documents."""
+    customer_id = state.get("current_customer_id")
+    renamed_files = state.get("renamed_files", {})
+    output_dir = state.get("output_dir", "./output")
+    
+    if not customer_id:
+        return state
+    
+    file_paths = [file_info["path"] for file_info in renamed_files.values()]
+    zip_path = create_zip_file(file_paths, customer_id, output_dir)
+    
+    state["zip_path"] = zip_path
+    return state
+
+@agents.agent
+def CompletionAgent(state: dict) -> dict:
+    """Agent to mark customer as processed and prepare for next customer."""
+    customer_id = state.get("current_customer_id")
+    if customer_id:
+        processed = state.get("processed_customers", [])
+        processed.append(customer_id)
+        state["processed_customers"] = processed
+        
+        # Clean up current customer data
+        for key in ["current_customer", "current_customer_id", "current_risk_class", 
+                   "expected_documents", "customer_files", "classification_results", 
+                   "renamed_files", "zip_path"]:
+            if key in state:
+                del state[key]
+    
+    return state
+
+def create_agent_graph():
+    """Create and configure the agent graph for document processing."""
+    graph = ai_adk.Graph()
+    
+    # Add agents to the graph
+    graph.add_node("excel_reader", ExcelReaderAgent)
+    graph.add_node("customer_processor", CustomerProcessingAgent)
+    graph.add_node("document_expectation", DocumentExpectationAgent)
+    graph.add_node("file_retrieval", FileRetrievalAgent)
+    graph.add_node("document_classification", DocumentClassificationAgent)
+    graph.add_node("file_renaming", FileRenamingAgent)
+    graph.add_node("packaging", PackagingAgent)
+    graph.add_node("completion", CompletionAgent)
+    
+    # Define execution flow
+    graph.set_entry_point("excel_reader")
+    graph.add_edge("excel_reader", "customer_processor")
+    graph.add_edge("customer_processor", "document_expectation")
+    graph.add_edge("document_expectation", "file_retrieval")
+    graph.add_edge("file_retrieval", "document_classification")
+    graph.add_edge("document_classification", "file_renaming")
+    graph.add_edge("file_renaming", "packaging")
+    graph.add_edge("packaging", "completion")
+    
+    # Loop back to process next customer
+    graph.add_conditional_edge(
+        "completion",
+        lambda state: not state.get("processing_complete", False),
+        "customer_processor"
+    )
+    
+    return graph
+
+def main():
+    """Main function to execute the document processing workflow."""
+    # Initialize state with configuration
+    initial_state = {
+        "excel_file_path": "customers.xlsx",  # Path to your Excel file
+        "documents_base_dir": "./documents",   # Base directory containing customer folders
+        "output_dir": "./output",              # Directory for output ZIP files
+        "processing_complete": False
+    }
+    
+    # Create and run the agent graph
+    graph = create_agent_graph()
+    final_state = graph.run(initial_state)
+    
+    print("Processing completed!")
+    print(f"Processed {len(final_state.get('processed_customers', []))} customers")
+    
+    # Save processing summary
+    summary_path = Path(final_state['output_dir']) / "processing_summary.json"
+    with open(summary_path, 'w') as f:
+        json.dump({
+            "processed_customers": final_state.get('processed_customers', []),
+            "total_customers": final_state.get('total_customers', 0)
+        }, f, indent=2)
+    
+    return final_state
+
+if __name__ == "__main__":
+    # Set your Gemini API key as environment variable
+    # os.environ["GEMINI_API_KEY"] = "your-api-key-here"
+    
+    main()
