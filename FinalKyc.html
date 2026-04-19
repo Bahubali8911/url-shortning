@@ -1,0 +1,910 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>KYC AI — Deutsche Bank</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@300;400;500&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet"/>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{
+  --bg:#1E2A3A;
+  --surface:#263445;
+  --surface2:#2E3E52;
+  --border:#3E5570;
+  --border2:#4E6888;
+  --gold:#FFD560;
+  --gold2:#FFE890;
+  --red:#FF8080;
+  --cyan:#70EEFF;
+  --green:#70FFB8;
+  --purple:#D0B8FF;
+  --orange:#FFC070;
+  --white:#FFFFFF;
+  --text:#EEF6FF;
+  --muted:#C8DCEE;
+}
+html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);font-family:'Syne',sans-serif;color:var(--white);cursor:none;}
+
+/* CURSOR */
+#cur{position:fixed;width:8px;height:8px;background:var(–gold);border-radius:50%;pointer-events:none;z-index:9999;transform:translate(-50%,-50%);}
+#cur2{position:fixed;width:32px;height:32px;border:1px solid rgba(240,192,80,0.5);border-radius:50%;pointer-events:none;z-index:9998;transform:translate(-50%,-50%);transition:all 0.1s ease;}
+
+/* GRAIN */
+#grain{position:fixed;inset:0;pointer-events:none;z-index:200;opacity:0.018;}
+
+/* LETTERBOX */
+.lb{position:fixed;left:0;right:0;background:#000;z-index:150;transition:height 0.8s cubic-bezier(0.4,0,0.2,1);}
+#lbt{top:0;height:52px;}
+#lbb{bottom:0;height:52px;}
+
+/* SLIDES */
+.slides{position:fixed;inset:0;}
+.slide{position:absolute;inset:0;opacity:0;pointer-events:none;overflow:hidden;display:flex;align-items:center;justify-content:center;visibility:hidden;isolation:isolate;}
+.slide.active{opacity:1;pointer-events:all;visibility:visible;}
+
+/* GRID BG */
+.gbg{position:absolute;inset:0;background-image:linear-gradient(rgba(255,213,96,0.06) 1px,transparent 1px),linear-gradient(90deg,rgba(255,213,96,0.06) 1px,transparent 1px);background-size:80px 80px;pointer-events:none;}
+
+/* ORB */
+.orb{position:absolute;border-radius:50%;filter:blur(100px);pointer-events:none;}
+
+/* NAV */
+#nav{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:10px;background:rgba(28,38,54,0.97);border:1px solid var(–border2);padding:11px 22px;border-radius:100px;z-index:300;backdrop-filter:blur(12px);}
+.nd{width:5px;height:5px;border-radius:50%;background:var(–border2);cursor:pointer;transition:all 0.3s;}
+.nd.on{background:var(–gold);transform:scale(1.8);}
+.nb{background:none;border:1px solid var(–border2);color:#F0F8FF;padding:4px 14px;border-radius:100px;font-family:‘DM Mono’,monospace;font-size:14px;cursor:pointer;transition:all 0.2s;letter-spacing:0.07em;}
+.nb:hover{border-color:var(–gold);color:var(–gold);}
+#ctr{position:fixed;top:20px;right:28px;font-family:‘DM Mono’,monospace;font-size:14px;color:#F0F8FF;z-index:300;letter-spacing:0.12em;}
+#logo{position:fixed;top:20px;left:28px;font-family:‘Bebas Neue’,sans-serif;font-size:19px;letter-spacing:0.2em;color:var(–white);z-index:300;}
+#logo span{color:var(–gold);}
+
+/* SCAN */
+.scan-line{position:fixed;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(255,213,96,0.14),transparent);animation:scanH 5s linear infinite;pointer-events:none;z-index:100;}
+@keyframes scanH{0%{transform:translateY(-1px);}100%{transform:translateY(100vh);}}
+
+/* ANIMS */
+@keyframes fadeUp{from{opacity:0;transform:translateY(22px);}to{opacity:1;transform:translateY(0);}}
+@keyframes fadeIn{from{opacity:0;}to{opacity:1;}}
+@keyframes slideL{from{opacity:0;transform:translateX(-36px);}to{opacity:1;transform:translateX(0);}}
+@keyframes slideR{from{opacity:0;transform:translateX(36px);}to{opacity:1;transform:translateX(0);}}
+@keyframes scIn{from{opacity:0;transform:scale(0.92);}to{opacity:1;transform:scale(1);}}
+@keyframes floatY{0%,100%{transform:translateY(0);}50%{transform:translateY(-8px);}}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.4;}  }
+@keyframes rotateSlow{from{transform:rotate(0deg);}to{transform:rotate(360deg);}}
+@keyframes blink{0%,100%{opacity:1;}50%{opacity:0;}}
+@keyframes glitch{0%,100%{clip-path:inset(0 0 98% 0);}25%{clip-path:inset(20% 0 60% 0);}50%{clip-path:inset(65% 0 10% 0);}75%{clip-path:inset(40% 0 40% 0);}}
+@keyframes filmFlick{0%,96%,100%{opacity:1;}97%{opacity:0.8;}98%{opacity:1;}99%{opacity:0.92;}}
+
+.slide:not(.active) .a1,
+.slide:not(.active) .a2,
+.slide:not(.active) .a3,
+.slide:not(.active) .a4,
+.slide:not(.active) .a5,
+.slide:not(.active) .a6,
+.slide:not(.active) .al,
+.slide:not(.active) .ar,
+.slide:not(.active) .asc{animation:none;opacity:0;}
+
+.a1{animation:fadeUp 0.6s 0.1s both;}
+.a2{animation:fadeUp 0.6s 0.25s both;}
+.a3{animation:fadeUp 0.6s 0.4s both;}
+.a4{animation:fadeUp 0.6s 0.55s both;}
+.a5{animation:fadeUp 0.6s 0.7s both;}
+.a6{animation:fadeUp 0.6s 0.85s both;}
+.al{animation:slideL 0.6s 0.15s both;}
+.ar{animation:slideR 0.6s 0.28s both;}
+.asc{animation:scIn 0.55s 0.2s both;}
+
+/* SHARED */
+.tag{font-family:‘DM Mono’,monospace;font-size:15px;letter-spacing:0.22em;text-transform:uppercase;padding:5px 13px;border-radius:2px;border:1px solid;display:inline-block;margin-bottom:16px;}
+.hl{font-family:‘Bebas Neue’,sans-serif;line-height:0.95;letter-spacing:0.02em;margin-bottom:14px;}
+.body-t{font-family:‘DM Mono’,monospace;font-size:18px;line-height:1.85;color:#EEF6FF;}
+.card{background:var(–surface2);border:1px solid var(–border2);border-radius:8px;padding:16px 20px;transition:border-color 0.25s,transform 0.25s;position:relative;overflow:hidden;}
+.card:hover{transform:translateY(-2px);border-color:var(–border2);}
+.card-hl{position:absolute;top:0;left:0;right:0;height:1px;opacity:0;transition:opacity 0.25s;}
+.card:hover .card-hl{opacity:1;}
+.card-title{font-size:19px;font-weight:700;color:#FFFFFF;margin-bottom:4px;}
+.card-body{font-family:‘DM Mono’,monospace;font-size:17px;color:#EEF6FF;line-height:1.7;}
+.chip{display:inline-block;padding:3px 10px;border-radius:2px;font-family:‘DM Mono’,monospace;font-size:15px;letter-spacing:0.04em;margin:2px;border:1px solid;}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:60px;width:100%;max-width:1140px;align-items:center;}
+.full{width:100%;max-width:1140px;}
+.pain-tag{display:inline-block;margin-top:5px;padding:2px 9px;background:rgba(255,128,128,0.16);border:1px solid rgba(255,112,112,0.35);border-radius:2px;font-family:‘DM Mono’,monospace;font-size:15px;color:#FFC0C0;letter-spacing:0.04em;}
+.progress{height:2px;background:var(–border);border-radius:2px;overflow:hidden;margin:5px 0 10px;}
+.progress-fill{height:100%;border-radius:2px;}
+.mono{font-family:‘DM Mono’,monospace;}
+.dev-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(255,176,96,0.12);border:1px solid rgba(255,176,96,0.4);border-radius:4px;padding:4px 12px;font-family:‘DM Mono’,monospace;font-size:15px;color:#FFB060;letter-spacing:0.08em;}
+
+/* ═══ SLIDE 1 — TITLE ═══ */
+#s1{background:#182030;animation:filmFlick 8s infinite;}
+.fs{position:absolute;left:0;right:0;height:44px;background:repeating-linear-gradient(90deg,#0D0D0D 0,#0D0D0D 26px,#080808 26px,#080808 44px);}
+.fs-top{top:0;}.fs-bot{bottom:0;}
+.fh{display:flex;gap:16px;padding:0 14px;align-items:center;height:100%;}
+.fhole{width:14px;height:20px;border-radius:2px;background:#1A1A1A;border:1px solid #222;}
+.rnum{position:absolute;font-family:‘DM Mono’,monospace;font-size:12px;color:#252525;letter-spacing:0.18em;}
+.scan-s{position:absolute;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,rgba(255,240,160,0.1),transparent);animation:scanH 3.5s linear infinite;}
+#s1 h1{font-family:‘Bebas Neue’,sans-serif;line-height:0.88;letter-spacing:0.03em;text-align:center;}
+#s1 h1 .l1{display:block;font-size:clamp(28px,4vw,50px);color:#6A8AA0;letter-spacing:0.15em;margin-bottom:8px;}
+#s1 h1 .l2{display:block;font-size:clamp(64px,10vw,120px);color:var(–white);}
+#s1 h1 .l3{display:block;font-size:clamp(56px,9vw,108px);color:var(–gold);position:relative;}
+#s1 h1 .l3::after{content:attr(data-t);position:absolute;inset:0;color:var(–red);animation:glitch 5s 3s infinite;opacity:0.3;overflow:hidden;}
+#s1 h1 .l4{display:block;font-size:clamp(64px,10vw,120px);color:var(–white);}
+#s1 .sub{font-family:‘DM Mono’,monospace;font-size:18px;color:#D8ECFF;margin-top:24px;letter-spacing:0.06em;line-height:1.9;text-align:center;}
+#s1 .badges{display:flex;gap:10px;justify-content:center;margin-top:28px;flex-wrap:wrap;}
+#s1 .bi{border:1px solid rgba(255,213,96,0.45);padding:7px 20px;border-radius:2px;font-family:‘DM Mono’,monospace;font-size:15px;letter-spacing:0.15em;color:rgba(255,220,100,0.98);}
+#s1 .hint{font-family:‘DM Mono’,monospace;font-size:15px;color:#8AAABB;letter-spacing:0.15em;margin-top:32px;animation:blink 2.2s 2s infinite;text-align:center;}
+
+/* ═══ SLIDE 2 — BUSINESS CASE ═══ */
+#s2{}
+.biz-left{display:flex;flex-direction:column;}
+.biz-right{display:flex;flex-direction:column;gap:10px;}
+.phase-box{border-radius:8px;padding:22px 26px;position:relative;overflow:hidden;}
+.phase-box::before{content:’’;position:absolute;top:0;left:0;width:3px;height:100%;border-radius:2px 0 0 2px;}
+.phase-num{font-family:‘DM Mono’,monospace;font-size:15px;letter-spacing:0.2em;margin-bottom:6px;text-transform:uppercase;}
+.phase-title{font-size:19px;font-weight:700;color:var(–white);margin-bottom:4px;}
+.phase-val{font-family:‘Bebas Neue’,sans-serif;font-size:48px;line-height:1;margin-bottom:3px;}
+.phase-desc{font-family:‘DM Mono’,monospace;font-size:17px;color:#F0F8FF;line-height:1.7;}
+.fact{display:flex;align-items:flex-start;gap:10px;padding:13px 16px;background:var(–surface2);border:1px solid var(–border2);border-radius:6px;}
+.fact-ico{font-size:19px;flex-shrink:0;}
+.fact-text{font-family:‘DM Mono’,monospace;font-size:17px;color:#EEF6FF;line-height:1.6;}
+.fact-text strong{color:#FFFFFF;display:block;margin-bottom:1px;}
+
+/* ═══ SLIDE 3 — OLD WORLD ═══ */
+#s3{}
+.old-left{display:flex;flex-direction:column;}
+.old-right{display:flex;flex-direction:column;align-items:center;gap:16px;}
+.step-list{display:flex;flex-direction:column;gap:0;margin-top:4px;}
+.step{display:flex;gap:16px;padding:13px 0;border-bottom:1px solid rgba(255,100,100,0.15);}
+.step:last-child{border-bottom:none;}
+.step-n{font-family:‘Bebas Neue’,sans-serif;font-size:44px;color:rgba(255,100,100,0.55);line-height:1;flex-shrink:0;width:40px;text-align:center;padding-top:2px;text-shadow:0 0 20px rgba(255,100,100,0.3);}
+.step-c{flex:1;padding-left:14px;border-left:1px solid rgba(255,100,100,0.35);}
+.step-title{font-size:17px;font-weight:700;color:#FFFFFF;margin-bottom:2px;}
+.step-desc{font-family:‘DM Mono’,monospace;font-size:17px;color:#F0F8FF;line-height:1.6;}
+.person-ico{font-size:48px;animation:floatY 3.5s ease-in-out infinite;}
+.old-papers{display:flex;flex-direction:column;align-items:center;gap:3px;margin-top:4px;}
+.opaper{height:11px;border-radius:2px;border:1px solid rgba(224,82,82,0.15);}
+.email-box{background:rgba(224,82,82,0.07);border:1px solid rgba(224,82,82,0.2);border-radius:6px;padding:11px 15px;text-align:center;font-family:‘DM Mono’,monospace;font-size:17px;color:#F0F8FF;line-height:1.7;max-width:210px;position:relative;margin-top:4px;}
+.email-box::before{content:‘📧’;position:absolute;top:-11px;left:50%;transform:translateX(-50%);font-size:20px;}
+.old-stats{display:flex;gap:8px;}
+.ostat{flex:1;background:rgba(224,82,82,0.06);border:1px solid rgba(224,82,82,0.18);border-radius:6px;padding:11px;text-align:center;}
+.ostat-v{font-family:‘Bebas Neue’,sans-serif;font-size:30px;color:var(–red);line-height:1;}
+.ostat-l{font-family:‘DM Mono’,monospace;font-size:12px;color:#D8ECFF;letter-spacing:0.1em;text-transform:uppercase;margin-top:3px;}
+
+/* ═══ SLIDE 4 — STEP-BY-STEP TRANSITION ═══ */
+#s4{background:#182030;flex-direction:column;}
+#s4 .orb-big{width:800px;height:800px;background:var(–gold);top:50%;left:50%;transform:translate(-50%,-50%);opacity:0.06;animation:pulse 5s infinite;}
+.step-label{font-family:‘DM Mono’,monospace;font-size:15px;letter-spacing:0.25em;text-transform:uppercase;margin-bottom:20px;}
+.trans-box{border-radius:10px;padding:36px 52px;text-align:center;min-width:380px;max-width:500px;position:relative;}
+.trans-label{font-family:‘DM Mono’,monospace;font-size:17px;letter-spacing:0.2em;text-transform:uppercase;margin-bottom:10px;}
+.trans-title{font-family:‘Bebas Neue’,sans-serif;font-size:clamp(60px,9vw,96px);line-height:0.9;}
+.trans-desc{font-family:‘DM Mono’,monospace;font-size:17px;margin-top:14px;line-height:1.8;color:#F0F8FF;}
+.trans-tagline{font-family:‘Bebas Neue’,sans-serif;font-size:clamp(28px,3.5vw,40px);letter-spacing:0.1em;color:var(–gold);text-align:center;margin-top:0;}
+.trans-tagline span{color:var(–cyan);}
+.trans-arrow{font-size:28px;color:var(–gold);animation:floatY 2s ease-in-out infinite;}
+
+/* Step states */
+.step4-step{display:none;}
+.step4-step.show{display:flex;flex-direction:column;align-items:center;}
+
+/* ═══ SLIDE 5 — NEW WORLD ═══ */
+#s5{}
+.new-left{display:flex;flex-direction:column;}
+.new-right{display:flex;flex-direction:column;gap:10px;}
+.nstep{display:flex;align-items:flex-start;gap:12px;background:rgba(112,255,184,0.08);border:1px solid rgba(61,214,140,0.1);border-radius:7px;padding:14px 17px;transition:all 0.25s;position:relative;overflow:hidden;}
+.nstep:hover{border-color:rgba(61,214,140,0.28);}
+.nstep-ico{font-size:22px;flex-shrink:0;width:28px;text-align:center;margin-top:1px;}
+.nstep-body{flex:1;}
+.nstep-title{font-size:18px;font-weight:700;color:#FFFFFF;margin-bottom:2px;}
+.nstep-desc{font-family:‘DM Mono’,monospace;font-size:17px;color:#F0F8FF;line-height:1.6;}
+.nstep-tag{display:inline-block;padding:1px 7px;background:rgba(61,214,140,0.08);border:1px solid rgba(61,214,140,0.18);border-radius:2px;font-family:‘DM Mono’,monospace;font-size:14px;color:var(–green);margin-top:3px;letter-spacing:0.04em;}
+.hitl-box{background:rgba(255,213,96,0.11);border:1px solid rgba(212,168,67,0.22);border-radius:7px;padding:16px 18px;margin-top:8px;}
+.hitl-label{font-family:‘DM Mono’,monospace;font-size:15px;color:var(–gold);letter-spacing:0.14em;text-transform:uppercase;margin-bottom:5px;}
+.hitl-desc{font-family:‘DM Mono’,monospace;font-size:17px;color:#F0F8FF;line-height:1.65;}
+.output-card{background:rgba(112,255,184,0.08);border:1px solid rgba(61,214,140,0.18);border-radius:8px;padding:22px 24px;}
+.out-ico{font-size:34px;animation:floatY 3s ease-in-out infinite;}
+.out-title{font-family:‘Bebas Neue’,sans-serif;font-size:22px;letter-spacing:0.08em;color:var(–green);margin-top:8px;margin-bottom:6px;}
+.out-desc{font-family:‘DM Mono’,monospace;font-size:17px;color:#F0F8FF;line-height:1.7;margin-bottom:10px;}
+.file-list{display:flex;flex-direction:column;gap:4px;}
+.file-item{display:flex;align-items:center;gap:7px;font-family:‘DM Mono’,monospace;font-size:17px;color:#E8F2FF;}
+.file-item .tick{color:var(–green);}
+.zip-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(61,214,140,0.07);border:1px solid rgba(61,214,140,0.18);border-radius:4px;padding:5px 11px;font-family:‘DM Mono’,monospace;font-size:15px;color:var(–green);margin-top:8px;}
+
+/* ═══ SLIDE 6 — BEFORE VS AFTER ═══ */
+#s6{}
+.vs-wrap{width:100%;max-width:1140px;}
+.vs-title{font-family:‘Bebas Neue’,sans-serif;font-size:clamp(42px,5.5vw,62px);letter-spacing:0.04em;text-align:center;margin-bottom:28px;}
+.vs-title span{color:var(–gold);}
+.vs-grid{display:grid;grid-template-columns:1fr auto 1fr;gap:0;align-items:stretch;}
+.vs-col{display:flex;flex-direction:column;gap:8px;padding:24px 28px;}
+.vs-head{text-align:center;margin-bottom:4px;font-family:‘Bebas Neue’,sans-serif;font-size:18px;letter-spacing:0.2em;}
+.vs-item{display:flex;align-items:flex-start;gap:9px;padding:12px 15px;border-radius:6px;}
+.vs-item-ico{font-size:18px;flex-shrink:0;margin-top:1px;}
+.vs-item-txt{font-family:‘DM Mono’,monospace;font-size:16px;line-height:1.6;}
+.vs-item-txt strong{display:block;font-size:17px;margin-bottom:1px;}
+.vs-before .vs-item{background:rgba(255,128,128,0.10);border:1px solid rgba(255,112,112,0.15);}
+.vs-before .vs-item-txt{color:#F0F8FF;}.vs-before .vs-item-txt strong{color:#FFC0C0;}
+.vs-after .vs-item{background:rgba(112,255,184,0.09);border:1px solid rgba(94,255,168,0.14);}
+.vs-after .vs-item-txt{color:#F0F8FF;}.vs-after .vs-item-txt strong{color:#5EFFA8;}
+.vs-mid{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:0 18px;}
+.vs-mid-line{flex:1;width:1px;background:linear-gradient(to bottom,transparent,var(–gold),transparent);}
+.vs-mid-text{font-family:‘Bebas Neue’,sans-serif;font-size:19px;letter-spacing:0.1em;color:var(–gold);writing-mode:vertical-rl;}
+.verdict{display:flex;gap:0;margin-top:20px;border:1px solid rgba(212,168,67,0.18);border-radius:7px;overflow:hidden;}
+.vstat{flex:1;padding:16px 12px;text-align:center;border-right:1px solid rgba(212,168,67,0.1);}
+.vstat:last-child{border-right:none;}
+.vstat-v{font-family:‘Bebas Neue’,sans-serif;font-size:46px;line-height:1;}
+.vstat-l{font-family:‘DM Mono’,monospace;font-size:15px;color:#D8ECFF;letter-spacing:0.1em;text-transform:uppercase;margin-top:3px;line-height:1.5;}
+
+/* ═══ SLIDE 7 — PIPELINE ═══ */
+#s7{align-items:flex-start;padding:36px 44px 60px;}
+.pipe-wrap{width:100%;max-width:100%;}
+.pipe-row{display:flex;align-items:center;justify-content:space-between;gap:0;width:100%;margin-bottom:16px;}
+.pnode{display:flex;flex-direction:column;align-items:center;gap:6px;flex:1;}
+.pbox{border-radius:9px;padding:16px 10px;text-align:center;width:100%;position:relative;overflow:hidden;cursor:default;transition:transform 0.22s;}
+.pbox:hover{transform:translateY(-3px);}
+.pbox-badge{position:absolute;top:7px;right:7px;width:7px;height:7px;border-radius:50%;animation:pulse 1.8s infinite;}
+.pbox-ico{font-size:30px;margin-bottom:7px;}
+.pbox-title{font-size:17px;font-weight:700;color:#FFFFFF;margin-bottom:4px;}
+.pbox-sub{font-family:‘DM Mono’,monospace;font-size:15px;line-height:1.5;color:#E4F0FF;}
+.pbox-tools{display:flex;flex-direction:column;gap:3px;margin-top:6px;}
+.ptool{font-family:‘DM Mono’,monospace;font-size:13px;padding:2px 6px;border-radius:3px;border:1px solid;text-align:center;}
+.parr{color:rgba(255,213,96,0.55);font-size:22px;flex-shrink:0;padding:0 3px;}
+.plabel{font-family:‘DM Mono’,monospace;font-size:14px;letter-spacing:0.08em;color:#D8ECFF;text-transform:uppercase;margin-top:5px;}
+.seq-detail{background:var(–surface2);border:1px solid var(–border2);border-radius:8px;padding:16px 20px;margin-bottom:14px;}
+.seq-title{font-family:‘DM Mono’,monospace;font-size:15px;letter-spacing:0.13em;color:#D8ECFF;text-transform:uppercase;margin-bottom:12px;}
+.seq-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}
+.seq-item{border-radius:6px;padding:12px 14px;}
+.seq-item-label{font-family:‘DM Mono’,monospace;font-size:15px;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:6px;}
+.seq-item-text{font-family:‘DM Mono’,monospace;font-size:16px;color:#F0F8FF;line-height:1.6;}
+.seq-item-text code{color:#FFFFFF;font-size:15px;}
+.tech-row{display:flex;gap:8px;flex-wrap:wrap;}
+.tbadge{padding:6px 14px;border-radius:100px;font-family:‘DM Mono’,monospace;font-size:16px;letter-spacing:0.03em;border:1px solid;transition:all 0.18s;}
+.tbadge:hover{transform:scale(1.04);}
+
+/* ═══ SLIDE 8 — ARCHITECTURE ═══ */
+#s8{align-items:flex-start;padding:36px 44px 60px;}
+.arch-wrap{width:100%;max-width:100%;}
+.journey-item{display:flex;gap:16px;align-items:flex-start;padding:12px 0;border-bottom:1px solid var(–border);}
+.journey-item:last-child{border-bottom:none;}
+.j-num{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;font-family:‘Bebas Neue’,sans-serif;flex-shrink:0;}
+.j-title{font-size:20px;font-weight:700;color:#FFFFFF;margin-bottom:3px;}
+.j-desc{font-family:‘DM Mono’,monospace;font-size:17px;color:#E8F2FF;}
+.int-box{border-radius:8px;padding:14px 16px;}
+.int-label{font-family:‘DM Mono’,monospace;font-size:15px;letter-spacing:0.12em;text-transform:uppercase;margin-bottom:7px;}
+.int-items{font-family:‘DM Mono’,monospace;font-size:17px;color:#F0F8FF;line-height:1.9;}
+
+/* ═══ SLIDE 9 — CLOSING ═══ */
+#s9{background:#182030;flex-direction:column;text-align:center;}
+#s9 .ring{position:absolute;border-radius:50%;border:1px solid;top:50%;left:50%;transform:translate(-50%,-50%);}
+#s9 .gold-glow{width:400px;height:400px;background:var(–gold);top:50%;left:50%;transform:translate(-50%,-50%);border-radius:50%;filter:blur(120px);opacity:0.09;}
+#s9 .pre{font-family:‘DM Mono’,monospace;font-size:15px;letter-spacing:0.28em;color:var(–gold);margin-bottom:20px;}
+#s9 h2{font-family:‘Bebas Neue’,sans-serif;line-height:0.88;letter-spacing:0.03em;}
+#s9 h2 .cl1{display:block;font-size:clamp(38px,5.5vw,68px);color:#8AAABB;}
+#s9 h2 .cl2{display:block;font-size:clamp(60px,9vw,108px);color:#FFFFFF;}
+#s9 h2 .cl3{display:block;font-size:clamp(52px,8vw,92px);color:var(–gold);}
+#s9 .tagline{font-family:‘DM Mono’,monospace;font-size:18px;color:#F0F8FF;margin-top:24px;line-height:1.95;max-width:680px;}
+#s9 .tagline strong{color:#FFFFFF;}
+.impact-strip{display:flex;gap:0;margin-top:36px;border:1px solid rgba(245,204,85,0.25);border-radius:9px;overflow:hidden;max-width:900px;width:100%;}
+.istat{flex:1;padding:18px 14px;text-align:center;border-right:1px solid rgba(245,204,85,0.12);}
+.istat:last-child{border-right:none;}
+.istat-v{font-family:‘Bebas Neue’,sans-serif;font-size:48px;line-height:1;}
+.istat-l{font-family:‘DM Mono’,monospace;font-size:15px;color:#D8ECFF;letter-spacing:0.1em;text-transform:uppercase;margin-top:3px;line-height:1.5;}
+.vstat-l{font-family:‘DM Mono’,monospace;font-size:15px;color:#D8ECFF;letter-spacing:0.1em;text-transform:uppercase;margin-top:3px;line-height:1.5;}
+.phase-desc{font-family:‘DM Mono’,monospace;font-size:17px;color:#F0F8FF;line-height:1.7;}
+</style>
+
+</head>
+<body>
+
+<div id="cur"></div>
+<div id="cur2"></div>
+<canvas id="grain"></canvas>
+<div class="lb" id="lbt"></div>
+<div class="lb" id="lbb"></div>
+<div class="scan-line"></div>
+<div id="logo">◆ <span>DB</span> KYC AI</div>
+<div id="ctr">01 / 09</div>
+
+<div class="slides">
+
+<!-- ════ SLIDE 1 — TITLE ════ -->
+
+<div class="slide active" id="s1">
+  <div class="fs fs-top"><div class="fh" id="fh1"></div></div>
+  <div class="fs fs-bot"><div class="fh" id="fh2"></div></div>
+  <div class="scan-s"></div>
+  <div class="rnum" style="top:15px;left:52px;">DB·KYC·AI · REEL 01</div>
+  <div class="rnum" style="top:15px;right:52px;">KANNON 2798.001 · 2025</div>
+  <div style="display:flex;flex-direction:column;align-items:center;">
+    <div style="font-family:'DM Mono',monospace;font-size:13px;letter-spacing:0.3em;color:var(--gold);margin-bottom:20px;animation:fadeIn 1s 0.4s both;">Deutsche Bank · Technology, Data & Innovation</div>
+    <h1 style="animation:fadeIn 1.1s 0.65s both;">
+      <span class="l1">Preparing KYC Files</span>
+      <span class="l2">The Human Era</span>
+      <span class="l3" data-t="vs The Agentic Era">vs The Agentic Era</span>
+    </h1>
+    <p class="sub" style="animation:fadeIn 1s 1.1s both;">How AI transforms days of manual audit preparation<br/>into a single upload — for GBM 00-19 clients</p>
+    <div class="badges" style="animation:fadeIn 1s 1.4s both;">
+      <div class="bi">KANNON ID 2798.001</div>
+      <div class="bi">CORPORATE BANK · BIZBANKING</div>
+      <div class="bi">GERMANY · PHASE 1 MVP</div>
+      <div class="bi">GO-LIVE 15.06.26</div>
+    </div>
+    <div class="hint" style="animation:fadeIn 1s 1.8s both;">▶ PRESS SPACE OR → TO BEGIN</div>
+  </div>
+  <div style="position:absolute;inset:0;background:radial-gradient(ellipse at center,transparent 40%,rgba(6,8,12,0.7) 100%);pointer-events:none;"></div>
+</div>
+
+<!-- ════ SLIDE 2 — BUSINESS CASE ════ -->
+
+<div class="slide" id="s2">
+  <div class="gbg"></div>
+  <div class="orb" style="width:500px;height:500px;background:var(--gold);top:-150px;right:-150px;opacity:0.12;"></div>
+  <div class="two-col">
+    <div class="biz-left al">
+      <div class="tag" style="color:var(--gold);border-color:rgba(212,168,67,0.3);">Business Case</div>
+      <h2 class="hl" style="font-size:clamp(40px,5.5vw,64px);">Why This <span style="color:var(--gold)">Matters</span></h2>
+      <p class="body-t" style="margin-bottom:22px;">Manual KYC file preparation for GBM 00-19 clients during multiple annual external audits causes significant operational effort and process inefficiencies for the CCS team.</p>
+      <div style="display:flex;flex-direction:column;gap:12px;">
+        <div class="phase-box a2" style="background:rgba(255,213,96,0.11);border:1px solid rgba(255,213,96,0.45);">
+          <div style="position:absolute;top:0;left:0;width:3px;height:100%;background:var(--gold);border-radius:2px 0 0 2px;"></div>
+          <div class="phase-num" style="color:var(--gold);">Phase 1 · MVP</div>
+          <div class="phase-title">Initial Effort Saving</div>
+          <div class="phase-val" style="color:var(--gold);">~€80k</div>
+          <div class="phase-desc">~0.5 FTE annual effort saving · Improved speed on audit responses · &lt;5 initial users</div>
+        </div>
+        <div class="phase-box a3" style="background:rgba(61,214,140,0.05);border:1px solid rgba(61,214,140,0.18);">
+          <div style="position:absolute;top:0;left:0;width:3px;height:100%;background:var(--green);border-radius:2px 0 0 2px;"></div>
+          <div class="phase-num" style="color:var(--green);">Phase 2 · Scale</div>
+          <div class="phase-title">Full Potential</div>
+          <div class="phase-val" style="color:var(--green);">~€853k</div>
+          <div class="phase-desc">~9.5 FTE capacity gains · 1,000 internal / 50,000 external users · Measurable financial savings annually</div>
+        </div>
+      </div>
+    </div>
+    <div class="biz-right ar">
+      <div style="font-family:'DM Mono',monospace;font-size:13px;letter-spacing:0.16em;color:#D8ECFF;text-transform:uppercase;margin-bottom:4px;">Key Facts</div>
+      <div class="fact a2"><div class="fact-ico">🏦</div><div class="fact-text"><strong>Who uses it</strong>ACO and CCS specialists · Corporate Bank BizBanking division</div></div>
+      <div class="fact a3"><div class="fact-ico">📅</div><div class="fact-text"><strong>Go-Live & Roadmap</strong>Phase 1 MVP planned 15.06.26 · Phase 2 in final planning</div></div>
+      <div class="fact a4"><div class="fact-ico">🌍</div><div class="fact-text"><strong>Scope</strong>Germany · GBM 00-19 segment · Multiple annual external audit cycles</div></div>
+      <div class="fact a5"><div class="fact-ico">🛡️</div><div class="fact-text"><strong>Compliance by design</strong>Human-in-the-Loop final review · Full traceability · PII in scope</div></div>
+      <div class="fact a6"><div class="fact-ico">🤖</div><div class="fact-text"><strong>AI Model</strong>Gemini 2.5 Flash/Pro + DB Textract · Google Document AI · KYC Guidelines knowledge base</div></div>
+      <div class="dev-badge a6" style="margin-top:6px;">⚙ Currently in active development</div>
+    </div>
+  </div>
+</div>
+
+<!-- ════ SLIDE 3 — OLD WORLD ════ -->
+
+<div class="slide" id="s3">
+  <div class="gbg"></div>
+  <div class="orb" style="width:450px;height:450px;background:var(--red);top:-100px;left:-100px;opacity:0.12;"></div>
+  <div class="two-col">
+    <div class="old-left al">
+      <div class="tag" style="color:var(--red);border-color:rgba(224,82,82,0.3);">Before · The Human Era</div>
+      <h2 class="hl" style="font-size:clamp(36px,5vw,60px);">Days of <span style="color:var(--red)">Manual</span> Work</h2>
+      <p class="body-t" style="margin-bottom:16px;">Every audit cycle, the CCS team manually handles the entire KYC preparation — repetitive, error-prone, and consuming valuable specialist time.</p>
+      <div class="step-list">
+        <div class="step a2">
+          <div class="step-n">01</div>
+          <div class="step-c"><div class="step-title">Receive Audit Notification</div><div class="step-desc">Auditor email → shared inbox → manual pick-up · Back-and-forth email coordination</div><span class="pain-tag">⏱ Hours lost in handover</span></div>
+        </div>
+        <div class="step a3">
+          <div class="step-n">02</div>
+          <div class="step-c"><div class="step-title">Manual Login to DocDirect / CMiO</div><div class="step-desc">Search per client ID · Download each document one by one · No automation — pure repetitive clicks</div><span class="pain-tag">🔁 Repetitive for every client</span></div>
+        </div>
+        <div class="step a4">
+          <div class="step-n">03</div>
+          <div class="step-c"><div class="step-title">Read & Classify Every Document</div><div class="step-desc">Human reads full content · Classifies type by judgement · Ambiguous docs require escalation · Fatigue = errors</div><span class="pain-tag">🧠 High cognitive load · Inconsistent</span></div>
+        </div>
+        <div class="step a5">
+          <div class="step-n">04</div>
+          <div class="step-c"><div class="step-title">Rename, Structure & Deliver</div><div class="step-desc">Manual rename to convention · Move to correct folder · Deliver to auditor · Wait for corrections · Repeat</div><span class="pain-tag">📁 Days per audit cycle</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="old-right ar">
+      <div class="person-ico">👨‍💼</div>
+      <div style="width:180px;height:2px;background:linear-gradient(90deg,transparent,rgba(224,82,82,0.25),transparent);"></div>
+      <div class="old-papers">
+        <div class="opaper" style="width:140px;background:rgba(224,82,82,0.1);"></div>
+        <div class="opaper" style="width:120px;background:rgba(224,82,82,0.08);"></div>
+        <div class="opaper" style="width:110px;background:rgba(224,82,82,0.06);"></div>
+        <div class="opaper" style="width:100px;background:rgba(224,82,82,0.05);"></div>
+      </div>
+      <div class="email-box">"Please find attached<br/>the required KYC docs<br/>for audit client #4821..."</div>
+      <div class="old-stats">
+        <div class="ostat"><div class="ostat-v">Days</div><div class="ostat-l">Per Cycle</div></div>
+        <div class="ostat"><div class="ostat-v">100%</div><div class="ostat-l">Human Effort</div></div>
+        <div class="ostat"><div class="ostat-v">High</div><div class="ostat-l">Error Risk</div></div>
+      </div>
+      <div style="background:rgba(224,82,82,0.06);border:1px solid rgba(224,82,82,0.16);border-radius:6px;padding:11px 14px;text-align:center;max-width:260px;">
+        <div style="font-family:'DM Mono',monospace;font-size:13px;color:#D8ECFF;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:3px;">Operational impact</div>
+        <div style="font-family:'DM Mono',monospace;font-size:14px;color:#FFCCCC;line-height:1.7;">Peak workload stress · Staff diverted<br/>from core processes · Audit deadline<br/>pressure · Manual inconsistency risk</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════ SLIDE 4 — STEP-BY-STEP TRANSITION ════ -->
+
+<div class="slide" id="s4">
+  <div class="orb orb-big"></div>
+  <!-- Rings -->
+  <div style="position:absolute;width:700px;height:700px;border:1px solid rgba(212,168,67,0.04);border-radius:50%;animation:rotateSlow 30s linear infinite;top:50%;left:50%;transform:translate(-50%,-50%);pointer-events:none;"></div>
+  <div style="position:absolute;width:480px;height:480px;border:1px solid rgba(56,201,240,0.04);border-radius:50%;animation:rotateSlow 20s linear infinite reverse;top:50%;left:50%;transform:translate(-50%,-50%);pointer-events:none;"></div>
+
+  <!-- Step A: Before -->
+
+  <div class="step4-step" id="t4a">
+    <div class="step-label" style="color:#D8ECFF;">The moment everything changed</div>
+    <div class="trans-box" style="background:rgba(224,82,82,0.06);border:1px solid rgba(224,82,82,0.22);">
+      <div class="trans-label" style="color:var(--red);">Before</div>
+      <div class="trans-title" style="color:#E57373;">Human<br/>Driven</div>
+      <div class="trans-desc">Manual · Tedious · Error-prone<br/>Days per audit cycle · High fatigue<br/>100% human effort every time</div>
+    </div>
+    <div style="font-family:'DM Mono',monospace;font-size:14px;color:#D8ECFF;margin-top:20px;letter-spacing:0.1em;">Press → to continue</div>
+  </div>
+
+  <!-- Step B: After -->
+
+  <div class="step4-step" id="t4b">
+    <div class="step-label" style="color:#D8ECFF;">The moment everything changed</div>
+    <div class="trans-box" style="background:rgba(112,255,184,0.10);border:1px solid rgba(61,214,140,0.24);">
+      <div class="trans-label" style="color:var(--green);">After</div>
+      <div class="trans-title" style="color:var(--green);">AI<br/>Agentic</div>
+      <div class="trans-desc">Automated · Structured · Traceable<br/>One upload · Full KYC prep pipeline<br/>AI classification · HiTL before delivery</div>
+    </div>
+    <div style="font-family:'DM Mono',monospace;font-size:14px;color:#D8ECFF;margin-top:20px;letter-spacing:0.1em;">Press → to continue</div>
+  </div>
+
+  <!-- Step C: Tagline -->
+
+  <div class="step4-step" id="t4c">
+    <div class="trans-tagline" style="font-size:clamp(28px,4vw,42px);margin-bottom:16px;">One Excel upload.<br/><span>AI does the rest.</span></div>
+    <div class="trans-arrow">↓</div>
+    <div style="font-family:'DM Mono',monospace;font-size:14px;color:#D8ECFF;margin-top:20px;letter-spacing:0.1em;">Press → to see how</div>
+  </div>
+</div>
+
+<!-- ════ SLIDE 5 — NEW WORLD ════ -->
+
+<div class="slide" id="s5" style="align-items:flex-start;padding:36px 48px 60px;">
+  <div class="gbg"></div>
+  <div class="orb" style="width:600px;height:600px;background:var(--green);top:50%;left:50%;transform:translate(-50%,-50%);opacity:0.04;"></div>
+  <div style="width:100%;display:grid;grid-template-columns:1.15fr 0.85fr;gap:40px;align-items:start;">
+
+```
+<!-- LEFT: steps -->
+<div class="al">
+  <div style="display:flex;align-items:center;gap:16px;margin-bottom:14px;">
+    <div class="tag" style="color:var(--green);border-color:rgba(61,214,140,0.3);margin-bottom:0;">After · The Agentic Era</div>
+  </div>
+  <h2 class="hl" style="font-size:clamp(32px,4vw,52px);margin-bottom:10px;">One Upload. <span style="color:var(--green)">AI</span> Handles the Rest.</h2>
+  <p style="font-family:'DM Mono',monospace;font-size:15px;color:#EEF6FF;margin-bottom:16px;line-height:1.7;">CCS team uploads one Excel file. The entire KYC pipeline runs automatically. HiTL review before delivery.</p>
+
+  <div style="display:flex;flex-direction:column;gap:10px;">
+    <div class="nstep a2">
+      <div class="nstep-ico">📊</div>
+      <div class="nstep-body">
+        <div class="nstep-title">Upload Excel via GUI</div>
+        <div class="nstep-desc">CCS uploads auditor request Excel with client IDs, review type, request ID. Human involvement ends here.</div>
+        <span class="nstep-tag">USER TRIGGER</span>
+      </div>
+    </div>
+    <div class="nstep a3">
+      <div class="nstep-ico">📥</div>
+      <div class="nstep-body">
+        <div class="nstep-title">Agent Fetches from CMiO / DocDirect</div>
+        <div class="nstep-desc">Ingestion Agent searches & downloads all docs per client to GCS temp bucket. Saves master data summary.</div>
+        <span class="nstep-tag">DOCUMENT INGESTION AGENT</span>
+      </div>
+    </div>
+    <div class="nstep a4">
+      <div class="nstep-ico">🔍</div>
+      <div class="nstep-body">
+        <div class="nstep-title">dbTextract OCR + Gemini + RAG</div>
+        <div class="nstep-desc">Gemini classifies document type, confidence score. If below threshold → RAG retrieves from KYC knowledge base. Creates document_segment entities.</div>
+        <span class="nstep-tag">CLASSIFICATION AGENT · AI DECISION ★</span>
+      </div>
+    </div>
+    <div class="nstep a5">
+      <div class="nstep-ico">✅</div>
+      <div class="nstep-body">
+        <div class="nstep-title">Checklist Matching</div>
+        <div class="nstep-desc">Matches document_segments against KYC checklist. Returns Found / NotFound / Uncertain per requirement.</div>
+        <span class="nstep-tag">CHECKLIST MATCHING AGENT</span>
+      </div>
+    </div>
+    <div class="nstep a6">
+      <div class="nstep-ico">💾</div>
+      <div class="nstep-body">
+        <div class="nstep-title">Persist, Rename & Structure</div>
+        <div class="nstep-desc">Moves docs to permanent GCS: <code style="font-size:13px;color:var(--cyan);">ClientId/Req_FKN_type1_type2.pdf</code>. Deletes temp. Pub/Sub: completion.</div>
+        <span class="nstep-tag">PERSISTENCE AGENT</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="hitl-box" style="margin-top:12px;">
+    <div class="hitl-label">👁 Human in the Loop (HiTL)</div>
+    <div class="hitl-desc">Validator reviews package in GUI. Downloads ZIP, validates, sends to auditor. <strong style="color:#FFFFFF;">No results sent without human sign-off.</strong></div>
+  </div>
+</div>
+
+<!-- RIGHT: output -->
+<div class="ar" style="display:flex;flex-direction:column;gap:16px;padding-top:52px;">
+  <div class="output-card">
+    <div class="out-ico">📁</div>
+    <div class="out-title" style="font-size:22px;">Structured Output</div>
+    <div class="out-desc" style="font-size:14px;">AI-classified, correctly named, structured ZIP archive ready for HiTL review and auditor delivery.</div>
+    <div class="file-list" style="gap:6px;">
+      <div class="file-item" style="font-size:14px;"><span class="tick">✓</span><span style="color:var(--cyan);">AuditReq →</span> client_4821 /</div>
+      <div class="file-item" style="padding-left:18px;font-size:13px;"><span class="tick">✓</span>REQ_FKN_CourtOrder_POA.pdf</div>
+      <div class="file-item" style="padding-left:18px;font-size:13px;"><span class="tick">✓</span>REQ_FKN_AccountStatement.pdf</div>
+      <div class="file-item" style="font-size:14px;"><span class="tick">✓</span><span style="color:var(--cyan);">AuditReq →</span> client_9034 /</div>
+      <div class="file-item" style="padding-left:18px;font-size:13px;"><span class="tick">✓</span>REQ_FKN_Identity_KYCForm.pdf</div>
+      <div class="file-item" style="opacity:0.5;padding-left:18px;font-size:13px;"><span>···</span> hundreds more clients</div>
+    </div>
+    <div class="zip-badge" style="font-size:13px;margin-top:12px;">📦 AuditRequest_[Date].zip</div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+    <div style="background:rgba(78,234,160,0.09);border:1px solid rgba(61,214,140,0.25);border-radius:8px;padding:18px;text-align:center;">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:40px;color:var(--green);line-height:1;">Target</div>
+      <div style="font-family:'DM Mono',monospace;font-size:13px;color:#EEF6FF;letter-spacing:0.08em;text-transform:uppercase;margin-top:5px;line-height:1.5;">Zero false<br/>negatives</div>
+    </div>
+    <div style="background:rgba(255,213,96,0.09);border:1px solid rgba(255,213,96,0.3);border-radius:8px;padding:18px;text-align:center;">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:40px;color:var(--gold);line-height:1;">1</div>
+      <div style="font-family:'DM Mono',monospace;font-size:13px;color:#EEF6FF;letter-spacing:0.08em;text-transform:uppercase;margin-top:5px;line-height:1.5;">User action<br/>required</div>
+    </div>
+  </div>
+
+  <div class="dev-badge" style="font-size:13px;">⚙ In active development · Results to be confirmed</div>
+</div>
+```
+
+  </div>
+</div>
+
+<!-- ════ SLIDE 6 — BEFORE VS AFTER ════ -->
+
+<div class="slide" id="s6">
+  <div class="gbg"></div>
+  <div class="orb" style="width:500px;height:500px;background:var(--gold);top:50%;left:50%;transform:translate(-50%,-50%);opacity:0.06;"></div>
+  <div class="vs-wrap">
+    <div class="vs-title a1"><span>Before</span> & After</div>
+    <div class="vs-grid asc">
+      <div class="vs-col vs-before">
+        <div class="vs-head" style="color:var(--red);">🔴 Manual Process</div>
+        <div class="vs-item"><div class="vs-item-ico">📧</div><div class="vs-item-txt"><strong>Email-driven coordination</strong>Auditor email → shared inbox → manual pick-up and back-and-forth</div></div>
+        <div class="vs-item"><div class="vs-item-ico">🖱️</div><div class="vs-item-txt"><strong>Manual DocDirect / CMiO</strong>Search per client, download each document individually</div></div>
+        <div class="vs-item"><div class="vs-item-ico">👁️</div><div class="vs-item-txt"><strong>Human reads & classifies</strong>Classify by eye, subjective judgment, fatigue-driven errors</div></div>
+        <div class="vs-item"><div class="vs-item-ico">✏️</div><div class="vs-item-txt"><strong>Manual rename & folder structure</strong>Rename to convention, move files, deliver, await corrections</div></div>
+        <div class="vs-item"><div class="vs-item-ico">⏳</div><div class="vs-item-txt"><strong>Days per audit cycle</strong>Significant peak workload pressure on CCS specialists</div></div>
+      </div>
+      <div class="vs-mid">
+        <div class="vs-mid-line"></div>
+        <div class="vs-mid-text">VS</div>
+        <div class="vs-mid-line"></div>
+      </div>
+      <div class="vs-col vs-after">
+        <div class="vs-head" style="color:var(--green);">🟢 KYC AI Agent</div>
+        <div class="vs-item"><div class="vs-item-ico">📊</div><div class="vs-item-txt"><strong>Excel upload in GUI</strong>One action triggers the entire pipeline. Human work ends there.</div></div>
+        <div class="vs-item"><div class="vs-item-ico">🤖</div><div class="vs-item-txt"><strong>Auto-fetch from CMiO / DocDirect</strong>Ingestion Agent searches & downloads all docs via API</div></div>
+        <div class="vs-item"><div class="vs-item-ico">🧠</div><div class="vs-item-txt"><strong>dbTextract OCR + Gemini AI</strong>OCR extraction → classification with confidence scores · Checklist matched automatically</div></div>
+        <div class="vs-item"><div class="vs-item-ico">📁</div><div class="vs-item-txt"><strong>Auto-named structured ZIP</strong>ClientId/Req_FKN_type.pdf · Permanent GCS · Ready for HiTL</div></div>
+        <div class="vs-item"><div class="vs-item-ico">⚡</div><div class="vs-item-txt"><strong>Significantly faster · 24/7 · Scalable</strong>Frees CCS to focus on core banking processes</div></div>
+      </div>
+    </div>
+    <div class="verdict a4">
+      <div class="vstat"><div class="vstat-v" style="color:var(--gold);">€853k</div><div class="vstat-l">Target annual<br/>savings at scale</div></div>
+      <div class="vstat"><div class="vstat-v" style="color:var(--cyan);">9.5</div><div class="vstat-l">Target FTE<br/>capacity gains</div></div>
+      <div class="vstat"><div class="vstat-v" style="color:var(--green);">24/7</div><div class="vstat-l">Always on<br/>no fatigue</div></div>
+      <div class="vstat"><div class="vstat-v" style="color:var(--orange);">HiTL</div><div class="vstat-l">Human review<br/>before delivery</div></div>
+      <div class="vstat"><div class="vstat-v" style="color:var(--purple);">MVP</div><div class="vstat-l">In development<br/>Go-live 15.06.26</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ════ SLIDE 7 — PIPELINE ════ -->
+
+<div class="slide" id="s7">
+  <div class="gbg"></div>
+  <div class="orb" style="width:400px;height:400px;background:var(--cyan);bottom:-150px;right:-80px;opacity:0.09;"></div>
+  <div class="pipe-wrap">
+    <div class="a1" style="margin-bottom:22px;">
+      <div style="font-family:'DM Mono',monospace;font-size:13px;letter-spacing:0.18em;color:var(--cyan);text-transform:uppercase;margin-bottom:6px;">Technical Architecture</div>
+      <h2 class="hl" style="font-size:clamp(36px,4.5vw,54px);">Agent <span style="color:var(--cyan)">Pipeline</span></h2>
+    </div>
+    <div class="pipe-row a2">
+      <div class="pnode">
+        <div class="pbox" style="background:rgba(255,213,96,0.14);border:1px solid rgba(212,168,67,0.3);">
+          <div class="pbox-badge" style="background:var(--gold);"></div>
+          <div class="pbox-ico">📨</div><div class="pbox-title">Pub/Sub</div>
+          <div class="pbox-sub" style="color:rgba(255,220,100,0.95);">Trigger<br/>ClientId, type</div>
+        </div><div class="plabel">TRIGGER</div>
+      </div>
+      <div class="parr">→</div>
+      <div class="pnode">
+        <div class="pbox" style="background:rgba(112,238,255,0.11);border:1px solid rgba(56,201,240,0.25);">
+          <div class="pbox-badge" style="background:var(--cyan);"></div>
+          <div class="pbox-ico">🎯</div><div class="pbox-title">Orchestration</div>
+          <div class="pbox-sub" style="color:rgba(112,238,255,0.95);">Main Agent<br/>GKE · DB</div>
+        </div><div class="plabel">COORDINATOR</div>
+      </div>
+      <div class="parr">→</div>
+      <div class="pnode">
+        <div class="pbox" style="background:rgba(255,192,112,0.12);border:1px solid rgba(255,152,72,0.3);">
+          <div class="pbox-badge" style="background:var(--orange);animation-delay:0.4s;"></div>
+          <div class="pbox-ico">📥</div><div class="pbox-title">Doc Ingestion</div>
+          <div class="pbox-sub" style="color:rgba(255,152,72,0.7);">CMiO · DocDirect<br/>GCS temp</div>
+          <div class="pbox-tools">
+            <div class="ptool" style="color:rgba(255,152,72,0.8);border-color:rgba(255,152,72,0.25);background:rgba(255,152,72,0.06);">Download Tool</div>
+            <div class="ptool" style="color:rgba(255,152,72,0.6);border-color:rgba(255,152,72,0.15);background:rgba(255,152,72,0.04);font-size:11px;">LLM: tool orchestration</div>
+          </div>
+        </div><div class="plabel">FETCH DOCS</div>
+      </div>
+      <div class="parr">→</div>
+      <div class="pnode">
+        <div class="pbox" style="background:rgba(208,184,255,0.12);border:1px solid rgba(176,144,255,0.35);">
+          <div class="pbox-badge" style="background:var(--purple);animation-delay:0.8s;"></div>
+          <div class="pbox-ico">🧠</div><div class="pbox-title">Classification</div>
+          <div class="pbox-sub" style="color:rgba(176,144,255,0.75);">OCR + Gemini<br/>+ RAG fallback</div>
+          <div class="pbox-tools">
+            <div class="ptool" style="color:rgba(176,144,255,0.8);border-color:rgba(176,144,255,0.25);background:rgba(176,144,255,0.06);">dbTextract</div>
+            <div class="ptool" style="color:rgba(176,144,255,0.8);border-color:rgba(176,144,255,0.25);background:rgba(176,144,255,0.06);">Gemini Tool</div>
+            <div class="ptool" style="color:rgba(176,144,255,0.8);border-color:rgba(176,144,255,0.25);background:rgba(176,144,255,0.06);">RAG (low conf.)</div>
+            <div class="ptool" style="color:rgba(176,144,255,0.6);border-color:rgba(176,144,255,0.15);background:rgba(176,144,255,0.04);font-size:11px;">LLM: genuine reasoning ★</div>
+          </div>
+        </div><div class="plabel" style="color:var(--purple);font-weight:700;">AI DECISION ★</div>
+      </div>
+      <div class="parr">→</div>
+      <div class="pnode">
+        <div class="pbox" style="background:rgba(112,255,184,0.12);border:1px solid rgba(78,234,160,0.28);">
+          <div class="pbox-badge" style="background:var(--green);animation-delay:1.2s;"></div>
+          <div class="pbox-ico">✅</div><div class="pbox-title">Checklist</div>
+          <div class="pbox-sub" style="color:rgba(78,234,160,0.7);">KYC Guidelines<br/>Found/NotFound</div>
+          <div class="pbox-tools">
+            <div class="ptool" style="color:rgba(78,234,160,0.8);border-color:rgba(78,234,160,0.25);background:rgba(78,234,160,0.05);">Matching Tool</div>
+            <div class="ptool" style="color:rgba(78,234,160,0.6);border-color:rgba(78,234,160,0.15);background:rgba(78,234,160,0.04);font-size:11px;">LLM: genuine reasoning ★</div>
+          </div>
+        </div><div class="plabel">VALIDATE</div>
+      </div>
+      <div class="parr">→</div>
+      <div class="pnode">
+        <div class="pbox" style="background:rgba(112,238,255,0.10);border:1px solid rgba(77,220,255,0.22);">
+          <div class="pbox-badge" style="background:var(--cyan);animation-delay:1.6s;"></div>
+          <div class="pbox-ico">💾</div><div class="pbox-title">Persistence</div>
+          <div class="pbox-sub" style="color:rgba(77,220,255,0.6);">GCS perm<br/>PG · Pub/Sub</div>
+          <div class="pbox-tools">
+            <div class="ptool" style="color:rgba(77,220,255,0.75);border-color:rgba(77,220,255,0.2);background:rgba(77,220,255,0.04);">Persisting Tool</div>
+            <div class="ptool" style="color:rgba(77,220,255,0.55);border-color:rgba(77,220,255,0.12);background:rgba(77,220,255,0.03);font-size:11px;">LLM: tool orchestration</div>
+          </div>
+        </div><div class="plabel">STORE & NOTIFY</div>
+      </div>
+      <div class="parr">→</div>
+      <div class="pnode">
+        <div class="pbox" style="background:rgba(212,168,67,0.07);border:1px solid rgba(212,168,67,0.25);">
+          <div class="pbox-badge" style="background:var(--gold);animation-delay:2s;"></div>
+          <div class="pbox-ico">👁️</div><div class="pbox-title">HiTL Review</div>
+          <div class="pbox-sub" style="color:rgba(255,220,100,0.95);">Validator<br/>ZIP download</div>
+        </div><div class="plabel">HUMAN SIGN-OFF</div>
+      </div>
+    </div>
+
+```
+<div class="seq-detail a3">
+  <div class="seq-title">Key data flows per stage</div>
+  <div style="display:flex;gap:16px;margin-bottom:10px;flex-wrap:wrap;">
+    <div style="display:flex;align-items:center;gap:6px;font-family:'DM Mono',monospace;font-size:13px;color:#F0F8FF;"><span style="width:10px;height:10px;border-radius:2px;background:var(--purple);display:inline-block;flex-shrink:0;"></span>LLM: genuine reasoning (Classification, Checklist)</div>
+    <div style="display:flex;align-items:center;gap:6px;font-family:'DM Mono',monospace;font-size:13px;color:#D8ECFF;"><span style="width:10px;height:10px;border-radius:2px;background:var(--orange);display:inline-block;flex-shrink:0;"></span>LLM: tool orchestration (Ingestion, Persistence)</div>
+  </div>
+  <div class="seq-row">
+    <div class="seq-item" style="background:rgba(245,136,58,0.05);border:1px solid rgba(245,136,58,0.15);">
+      <div class="seq-item-label" style="color:var(--orange);">Ingestion output</div>
+      <div class="seq-item-text"><code>GCS/temp/clientId/doc.pdf</code><br/>+ master data summary<br/>+ enrichment_data ctx</div>
+    </div>
+    <div class="seq-item" style="background:rgba(155,126,245,0.05);border:1px solid rgba(155,126,245,0.15);">
+      <div class="seq-item-label" style="color:var(--purple);">Classification output</div>
+      <div class="seq-item-text"><code>documentId, page_range</code><br/><code>classification, confidence</code><br/>Low confidence → RAG<br/>document_segment entities</div>
+    </div>
+    <div class="seq-item" style="background:rgba(112,255,184,0.08);border:1px solid rgba(61,214,140,0.12);">
+      <div class="seq-item-label" style="color:var(--green);">Checklist output</div>
+      <div class="seq-item-text"><code>Found / NotFound</code><br/><code>Uncertain</code> per item<br/>Checklist report saved</div>
+    </div>
+    <div class="seq-item" style="background:rgba(56,201,240,0.04);border:1px solid rgba(56,201,240,0.1);">
+      <div class="seq-item-label" style="color:var(--cyan);">Persistence output</div>
+      <div class="seq-item-text"><code>ClientId/Req_FKN_</code><br/><code>type1_type2.pdf</code><br/>Pub/Sub: ClientRequest ✓</div>
+    </div>
+  </div>
+</div>
+
+<div class="tech-row a4">
+  <div class="tbadge" style="color:var(--cyan);border-color:rgba(56,201,240,0.22);background:rgba(56,201,240,0.05);">Google ADK Python</div>
+  <div class="tbadge" style="color:var(--purple);border-color:rgba(155,126,245,0.22);background:rgba(155,126,245,0.05);">Gemini 2.5 Flash/Pro</div>
+  <div class="tbadge" style="color:var(--orange);border-color:rgba(245,136,58,0.22);background:rgba(245,136,58,0.05);">DB Textract</div>
+  <div class="tbadge" style="color:var(--gold);border-color:rgba(255,213,96,0.45);background:rgba(212,168,67,0.04);">Vertex AI</div>
+  <div class="tbadge" style="color:var(--green);border-color:rgba(61,214,140,0.18);background:rgba(112,255,184,0.08);">GKE · Pub/Sub</div>
+  <div class="tbadge" style="color:var(--cyan);border-color:rgba(56,201,240,0.14);background:rgba(56,201,240,0.03);">PostgreSQL · BigQuery</div>
+  <div class="tbadge" style="color:var(--gold);border-color:rgba(212,168,67,0.14);background:rgba(212,168,67,0.03);">CMiO · DocDirect · CBDP</div>
+</div>
+```
+
+  </div>
+</div>
+
+<!-- ════ SLIDE 8 — ARCHITECTURE ════ -->
+
+<div class="slide" id="s8">
+  <div class="gbg"></div>
+  <div class="orb" style="width:400px;height:400px;background:var(--purple);top:50%;left:-80px;transform:translateY(-50%);opacity:0.10;"></div>
+  <div class="arch-wrap">
+    <div class="a1" style="margin-bottom:24px;">
+      <div style="font-family:'DM Mono',monospace;font-size:13px;letter-spacing:0.18em;color:var(--purple);text-transform:uppercase;margin-bottom:6px;">System Architecture</div>
+      <h2 class="hl" style="font-size:clamp(36px,4.5vw,54px);">How It All <span style="color:var(--purple)">Connects</span></h2>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1.35fr;gap:44px;align-items:start;">
+      <div class="asc" style="display:flex;flex-direction:column;">
+        <div style="font-family:'DM Mono',monospace;font-size:13px;color:#D8ECFF;letter-spacing:0.14em;text-transform:uppercase;margin-bottom:8px;">User journey</div>
+        <div style="display:flex;flex-direction:column;">
+          <div class="journey-item"><div class="j-num" style="background:rgba(212,168,67,0.1);border:1px solid rgba(212,168,67,0.3);color:var(--gold);">1</div><div><div class="j-title">Requester uploads Excel</div><div class="j-desc">GUI → BizBanking Service Layer → Pub/Sub triggers pipeline</div></div></div>
+          <div class="journey-item"><div class="j-num" style="background:rgba(245,136,58,0.1);border:1px solid rgba(245,136,58,0.3);color:var(--orange);">2</div><div><div class="j-title">Agents run autonomously</div><div class="j-desc">Ingestion → Classification → Checklist → Persistence via GCS</div></div></div>
+          <div class="journey-item"><div class="j-num" style="background:rgba(212,168,67,0.1);border:1px solid rgba(212,168,67,0.3);color:var(--gold);">3</div><div><div class="j-title">Email notification to HiTL</div><div class="j-desc">AI agent generates notification after successful compilation</div></div></div>
+          <div class="journey-item"><div class="j-num" style="background:rgba(61,214,140,0.1);border:1px solid rgba(61,214,140,0.3);color:var(--green);">4</div><div><div class="j-title">Validator reviews in GUI</div><div class="j-desc">Downloads ZIP, reviews, validates before sending to auditor</div></div></div>
+          <div class="journey-item"><div class="j-num" style="background:rgba(56,201,240,0.1);border:1px solid rgba(56,201,240,0.3);color:var(--cyan);">5</div><div><div class="j-title">Auditor receives package</div><div class="j-desc">Structured ZIP with audit-ready KYC file hierarchy</div></div></div>
+        </div>
+      </div>
+      <div class="ar" style="display:flex;flex-direction:column;gap:8px;">
+        <div style="font-family:'DM Mono',monospace;font-size:13px;color:#D8ECFF;letter-spacing:0.14em;text-transform:uppercase;margin-bottom:2px;">Data sources & integrations</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+          <div class="int-box" style="background:rgba(245,136,58,0.05);border:1px solid rgba(245,136,58,0.18);"><div class="int-label" style="color:var(--orange);">Source Systems</div><div class="int-items">CMiO<br/>DocDirect / DocPro<br/>CBDP<br/>DB Textract OCR</div></div>
+          <div class="int-box" style="background:rgba(155,126,245,0.05);border:1px solid rgba(155,126,245,0.18);"><div class="int-label" style="color:var(--purple);">AI Layer</div><div class="int-items">Gemini 2.5 Flash/Pro<br/>Google Document AI<br/>Vector Embeddings<br/>KYC Guidelines KB</div></div>
+          <div class="int-box" style="background:rgba(56,201,240,0.04);border:1px solid rgba(56,201,240,0.15);"><div class="int-label" style="color:var(--cyan);">Infrastructure</div><div class="int-items">GKE (agents)<br/>GCS (temp + perm)<br/>Pub/Sub (events)<br/>PostgreSQL + BigQuery</div></div>
+          <div class="int-box" style="background:rgba(112,255,184,0.08);border:1px solid rgba(61,214,140,0.15);"><div class="int-label" style="color:var(--green);">Platform</div><div class="int-items">Vertex AI<br/>BizBanking Svc Layer<br/>APIGEE (API gateway)<br/>NewRelic (monitoring)</div></div>
+        </div>
+        <div style="background:rgba(255,213,96,0.12);border:1px solid rgba(240,192,80,0.25);border-radius:6px;padding:12px 15px;margin-top:4px;">
+          <div style="font-family:'DM Mono',monospace;font-size:15px;color:var(--gold);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:6px;">★ All agents are LLM-powered — but not equally</div>
+          <div style="font-family:'DM Mono',monospace;font-size:14px;color:#F0F8FF;line-height:1.85;">
+            <span style="color:var(--purple);font-weight:600;">Classification</span> — dbTextract OCR → Gemini classifies. If confidence is below threshold, <span style="color:var(--purple);">RAG retrieves</span> from the KYC knowledge base to resolve ambiguous documents.<br/>
+            <span style="color:var(--green);font-weight:600;">Checklist</span> — Gemini reasons against KYC guidelines: Found / NotFound / Uncertain per required item.<br/>
+            <span style="color:var(--orange);">Ingestion & Persistence</span> — LLM orchestrates tool calls. Logic is largely deterministic.<br/>
+            <span style="color:var(--white);">Workflow sequence is fixed by design</span> — compliance and auditability require it.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════ SLIDE 9 — CLOSING ════ -->
+
+<div class="slide" id="s9">
+  <div class="orb gold-glow" style="position:absolute;width:400px;height:400px;top:50%;left:50%;transform:translate(-50%,-50%);filter:blur(120px);background:var(--gold);opacity:0.09;border-radius:50%;"></div>
+  <div style="position:absolute;width:700px;height:700px;border:1px solid rgba(212,168,67,0.04);border-radius:50%;animation:rotateSlow 35s linear infinite;top:50%;left:50%;transform:translate(-50%,-50%);pointer-events:none;"></div>
+  <div style="position:absolute;width:480px;height:480px;border:1px solid rgba(56,201,240,0.04);border-radius:50%;animation:rotateSlow 22s linear infinite reverse;top:50%;left:50%;transform:translate(-50%,-50%);pointer-events:none;"></div>
+  <div style="position:absolute;inset:0;background:radial-gradient(ellipse at center,transparent 30%,rgba(6,8,12,0.7) 100%);pointer-events:none;"></div>
+
+  <div style="display:flex;flex-direction:column;align-items:center;">
+    <div class="pre a1">Deutsche Bank · Technology, Data & Innovation · KYC Audit Assistant · 2025</div>
+    <h2 class="a2">
+      <span class="cl1">The Future of KYC</span>
+      <span class="cl2">Is Already</span>
+      <span class="cl3">Being Built</span>
+    </h2>
+    <p class="tagline a3">
+      What once took the CCS team <strong>days of manual, tedious work</strong><br/>is being transformed into <strong>a single Excel upload</strong>. AI handles classification,<br/>structuring and naming — with Human-in-the-Loop control at every delivery.
+    </p>
+
+```
+<div class="impact-strip a4">
+  <div class="istat"><div class="istat-v" style="color:var(--gold);">€853k</div><div class="istat-l">Target annual<br/>savings at scale</div></div>
+  <div class="istat"><div class="istat-v" style="color:var(--cyan);">9.5</div><div class="istat-l">Target FTE<br/>capacity gains</div></div>
+  <div class="istat"><div class="istat-v" style="color:var(--green);">1</div><div class="istat-l">Excel upload<br/>to start</div></div>
+  <div class="istat"><div class="istat-v" style="color:var(--orange);">HiTL</div><div class="istat-l">Human review<br/>always in loop</div></div>
+  <div class="istat"><div class="istat-v" style="color:var(--purple);">MVP</div><div class="istat-l">Go-live<br/>15.06.26</div></div>
+</div>
+
+<div class="a5" style="display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin-top:20px;max-width:700px;">
+  <span class="chip" style="color:var(--cyan);border-color:rgba(56,201,240,0.2);background:rgba(56,201,240,0.05);">Google ADK</span>
+  <span class="chip" style="color:var(--purple);border-color:rgba(155,126,245,0.2);background:rgba(155,126,245,0.05);">Gemini 2.5 Pro</span>
+  <span class="chip" style="color:var(--orange);border-color:rgba(245,136,58,0.2);background:rgba(245,136,58,0.05);">DB Textract</span>
+  <span class="chip" style="color:var(--gold);border-color:rgba(255,213,96,0.45);background:rgba(212,168,67,0.04);">Vertex AI</span>
+  <span class="chip" style="color:var(--green);border-color:rgba(61,214,140,0.18);background:rgba(112,255,184,0.08);">GKE</span>
+  <span class="chip" style="color:var(--cyan);border-color:rgba(56,201,240,0.15);background:rgba(56,201,240,0.03);">Pub/Sub</span>
+  <span class="chip" style="color:#F0F8FF;border-color:var(--border2);background:transparent;">PostgreSQL</span>
+  <span class="chip" style="color:#F0F8FF;border-color:var(--border2);background:transparent;">BigQuery</span>
+  <span class="chip" style="color:#F0F8FF;border-color:var(--border2);background:transparent;">CMiO · DocDirect</span>
+  <span class="chip" style="color:#F0F8FF;border-color:var(--border2);background:transparent;">NewRelic</span>
+</div>
+```
+
+  </div>
+</div>
+
+</div><!-- /slides -->
+
+<div id="nav">
+  <button class="nb" onclick="go(cur-1)">← prev</button>
+  <div id="dots"></div>
+  <button class="nb" onclick="go(cur+1)">next →</button>
+</div>
+
+<script>
+// Cursor
+const c=document.getElementById('cur'),c2=document.getElementById('cur2');
+let mx=window.innerWidth/2,my=window.innerHeight/2,rx=mx,ry=my;
+document.addEventListener('mousemove',e=>{mx=e.clientX;my=e.clientY;c.style.left=mx+'px';c.style.top=my+'px';});
+(function loop(){rx+=(mx-rx)*0.1;ry+=(my-ry)*0.1;c2.style.left=rx+'px';c2.style.top=ry+'px';requestAnimationFrame(loop);})();
+
+// Grain
+const cv=document.getElementById('grain'),ctx=cv.getContext('2d');
+function rz(){cv.width=window.innerWidth;cv.height=window.innerHeight;}rz();window.addEventListener('resize',rz);
+function grain(){ctx.clearRect(0,0,cv.width,cv.height);const d=ctx.createImageData(cv.width,cv.height);for(let i=0;i<d.data.length;i+=4){const v=Math.random()*255;d.data[i]=d.data[i+1]=d.data[i+2]=v;d.data[i+3]=Math.random()*14;}ctx.putImageData(d,0,0);requestAnimationFrame(grain);}
+grain();
+
+// Film holes
+['fh1','fh2'].forEach(id=>{const el=document.getElementById(id);if(!el)return;for(let i=0;i<44;i++){const d=document.createElement('div');d.className='fhole';el.appendChild(d);}});
+
+// Letterbox
+setTimeout(()=>{['lbt','lbb'].forEach(id=>{const el=document.getElementById(id);el.style.transition='height 0.85s cubic-bezier(0.4,0,0.2,1)';el.style.height='0';});},350);
+
+// ── Slide 4 sub-steps ──
+const s4steps=['t4a','t4b','t4c'];
+let s4cur=0;
+function showS4(n){
+  s4steps.forEach((id,i)=>{
+    const el=document.getElementById(id);
+    el.classList.remove('show');
+    if(i===n){el.classList.add('show');el.style.animation='fadeUp 0.6s both';}
+  });
+}
+
+// ── Slide engine ──
+const TOTAL=9;
+let cur=1;
+
+function buildDots(){
+  const d=document.getElementById('dots');d.innerHTML='';
+  for(let i=1;i<=TOTAL;i++){const dd=document.createElement('div');dd.className='nd'+(i===cur?' on':'');dd.onclick=()=>goSlide(i);d.appendChild(dd);}
+}
+
+function goSlide(n){
+  if(n<1||n>TOTAL)return;
+  const prev=document.getElementById('s'+cur);
+  prev.classList.remove('active');
+  // Force reflow so animations reset on re-entry
+  void prev.offsetWidth;
+  cur=n;
+  const next=document.getElementById('s'+cur);
+  next.classList.add('active');
+  document.getElementById('ctr').textContent=String(cur).padStart(2,'0')+' / '+String(TOTAL).padStart(2,'0');
+  buildDots();
+  if(cur===4){s4cur=0;showS4(0);}
+}
+
+function go(dir){
+  // On slide 4, step through sub-steps first
+  if(cur===4 && dir===1 && s4cur<s4steps.length-1){
+    s4cur++;showS4(s4cur);return;
+  }
+  if(cur===4 && dir===-1 && s4cur>0){
+    s4cur--;showS4(s4cur);return;
+  }
+  goSlide(cur+dir);
+}
+
+document.addEventListener('keydown',e=>{
+  if(['ArrowRight',' ','ArrowDown'].includes(e.key)){e.preventDefault();go(1);}
+  if(['ArrowLeft','ArrowUp'].includes(e.key)){e.preventDefault();go(-1);}
+});
+let tx=0;
+document.addEventListener('touchstart',e=>{tx=e.touches[0].clientX;},{passive:true});
+document.addEventListener('touchend',e=>{const d=tx-e.changedTouches[0].clientX;if(Math.abs(d)>50)go(d>0?1:-1);});
+
+buildDots();
+// Init slide 4 step
+showS4(0);
+</script>
+
+</body>
+</html>
